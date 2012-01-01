@@ -365,8 +365,8 @@ static int console_init_action(const std::vector<std::string>& args)
 
     fd = open("/dev/tty0", O_WRONLY | O_CLOEXEC);
     if (fd >= 0) {
-        const char *msg;
-            msg = "\n"
+        const char *msg =
+        "\033[9;0]\n"
         "\n"
         "\n"
         "\n"
