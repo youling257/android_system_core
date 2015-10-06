@@ -31,7 +31,6 @@
 
 #include "autosuspend_ops.h"
 
-#define SYS_POWER_STATE "/sys/power/state"
 #define SYS_POWER_WAKEUP_COUNT "/sys/power/wakeup_count"
 
 static int state_fd;

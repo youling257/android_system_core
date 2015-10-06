@@ -17,6 +17,8 @@
 #ifndef _LIBSUSPEND_AUTOSUSPEND_OPS_H_
 #define _LIBSUSPEND_AUTOSUSPEND_OPS_H_
 
+#define SYS_POWER_STATE "/sys/power/state"
+
 struct autosuspend_ops {
     int (*enable)(void);
     int (*disable)(void);
