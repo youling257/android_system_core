@@ -531,9 +531,14 @@ static int mount_fstab(const char* fstabfile, int mount_mode) {
             ret = -1;
         }
     } else if (pid == 0) {
+        std::string filename_val;
+        if (!expand_props(fstabfile, &filename_val)) {
+            ERROR("mount_all: cannot expand '%s'\n", fstabfile);
+            _exit(-1);
+        }
         /* child, call fs_mgr_mount_all() */
         klog_set_level(6);  /* So we can see what fs_mgr_mount_all() does */
-        fstab = fs_mgr_read_fstab(fstabfile);
+        fstab = fs_mgr_read_fstab(filename_val.c_str());
         child_ret = fs_mgr_mount_all(fstab, mount_mode);
         fs_mgr_free_fstab(fstab);
         if (child_ret == -1) {
@@ -599,14 +604,13 @@ static int queue_fs_event(int code) {
  * not return.
  */
 static int do_mount_all(const std::vector<std::string>& args) {
-    std::size_t na = 0;
     bool import_rc = true;
     bool queue_event = true;
     int mount_mode = MOUNT_MODE_DEFAULT;
     const char* fstabfile = args[1].c_str();
     std::size_t path_arg_end = args.size();
 
-    for (na = args.size() - 1; na > 1; --na) {
+    for (std::size_t na = args.size() - 1; na > 1; --na) {
         if (args[na] == "--early") {
              path_arg_end = na;
              queue_event = false;
