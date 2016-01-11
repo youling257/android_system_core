@@ -26,6 +26,8 @@ on early-init
     # Set the security context of /postinstall if present.
     restorecon /postinstall
 
+    mount debugfs /sys/kernel/debug /sys/kernel/debug mode=755
+
     start ueventd
 
 on init
