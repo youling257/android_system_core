@@ -36,7 +36,7 @@ static int format_ext4(char *fs_blkdev, char *fs_mnt_point)
     unsigned int nr_sec;
     int fd, rc = 0;
 
-    if ((fd = open(fs_blkdev, O_WRONLY, 0644)) < 0) {
+    if ((fd = open(fs_blkdev, O_WRONLY)) < 0) {
         ERROR("Cannot open block device.  %s\n", strerror(errno));
         return -1;
     }
