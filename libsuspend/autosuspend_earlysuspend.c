@@ -33,7 +33,6 @@
 #define EARLYSUSPEND_WAIT_FOR_FB_WAKE "/sys/power/wait_for_fb_wake"
 
 static int sPowerStatefd;
-static const char *pwr_state_mem = "mem";
 static const char *pwr_state_on = "on";
 static pthread_t earlysuspend_thread;
 static pthread_mutex_t earlysuspend_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -116,12 +115,13 @@ static void *earlysuspend_thread_func(void __unused *arg)
 static int autosuspend_earlysuspend_enable(void)
 {
     int ret;
+    const char *sleep_state = get_sleep_state();
 
     ALOGI("autosuspend_earlysuspend_enable");
 
-    ret = TEMP_FAILURE_RETRY(write(sPowerStatefd, pwr_state_mem, strlen(pwr_state_mem)));
+    ret = TEMP_FAILURE_RETRY(write(sPowerStatefd, sleep_state, strlen(sleep_state)));
     if (ret < 0) {
-        log_err("writing %s to %s", pwr_state_mem, SYS_POWER_STATE);
+        log_err("writing %s to %s", sleep_state, SYS_POWER_STATE);
         return ret;
     }
 

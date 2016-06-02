@@ -37,7 +37,6 @@ static int state_fd;
 static int wakeup_count_fd;
 static pthread_t suspend_thread;
 static sem_t suspend_lockout;
-static const char *sleep_state = "mem";
 static void (*wakeup_func)(bool success) = NULL;
 
 static void *suspend_thread_func(void *arg __attribute__((unused)))
@@ -80,6 +79,7 @@ static void *suspend_thread_func(void *arg __attribute__((unused)))
             strerror_r(errno, buf, sizeof(buf));
             ALOGE("Error writing to %s: %s\n", SYS_POWER_WAKEUP_COUNT, buf);
         } else {
+            const char *sleep_state = get_sleep_state();
             ALOGV("%s: write %s to %s\n", __func__, sleep_state, SYS_POWER_STATE);
             ret = TEMP_FAILURE_RETRY(write(state_fd, sleep_state, strlen(sleep_state)));
             if (ret < 0) {

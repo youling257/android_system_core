@@ -14,14 +14,21 @@
  * limitations under the License.
  */
 
+#include <errno.h>
+#include <fcntl.h>
 #include <stdbool.h>
+#include <string.h>
 
 #define LOG_TAG "libsuspend"
 #include <cutils/log.h>
+#include <cutils/properties.h>
 
 #include <suspend/autosuspend.h>
 
 #include "autosuspend_ops.h"
+
+static const char *default_sleep_state = "mem";
+static const char *fallback_sleep_state = "freeze";
 
 static struct autosuspend_ops *autosuspend_ops;
 static bool autosuspend_enabled;
@@ -109,4 +116,35 @@ int autosuspend_disable(void)
 
     autosuspend_enabled = false;
     return 0;
+}
+
+static bool sleep_state_available(const char *state)
+{
+    char buf[64];
+    int fd = TEMP_FAILURE_RETRY(open(SYS_POWER_STATE, O_RDONLY));
+    if (fd < 0) {
+        ALOGE("Error reading power state: %s", SYS_POWER_STATE);
+        return false;
+    }
+    TEMP_FAILURE_RETRY(read(fd, buf, 64));
+    close(fd);
+    return !!strstr(buf, state);
+}
+
+const char *get_sleep_state()
+{
+    static char sleep_state[PROPERTY_VALUE_MAX] = "";
+
+    if (!sleep_state[0]) {
+        if (property_get("sleep.state", sleep_state, NULL) > 0) {
+            ALOGD("autosuspend using sleep.state property (%s)", sleep_state);
+        } else if (sleep_state_available(default_sleep_state)) {
+            ALOGD("autosuspend using default sleep_state (%s)", default_sleep_state);
+            strncpy(sleep_state, default_sleep_state, PROPERTY_VALUE_MAX);
+        } else {
+            ALOGW("autosuspend \"%s\" unavailable, using fallback sleep.state (%s)", default_sleep_state, fallback_sleep_state);
+            strncpy(sleep_state, fallback_sleep_state, PROPERTY_VALUE_MAX);
+        }
+    }
+    return sleep_state;
 }
