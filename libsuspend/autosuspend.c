@@ -36,11 +36,16 @@ static bool autosuspend_inited;
 
 static int autosuspend_init(void)
 {
+    char buf[PROPERTY_VALUE_MAX];
+
     if (autosuspend_inited) {
         return 0;
     }
 
-    autosuspend_ops = autosuspend_earlysuspend_init();
+    property_get("sleep.earlysuspend", buf, "1");
+    if (buf[0] == '1') {
+        autosuspend_ops = autosuspend_earlysuspend_init();
+    }
     if (autosuspend_ops) {
         goto out;
     }
