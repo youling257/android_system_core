@@ -42,7 +42,7 @@ static int autosuspend_init(void)
         return 0;
     }
 
-    property_get("sleep.earlysuspend", buf, "1");
+    property_get("sleep.earlysuspend", buf, "0");
     if (buf[0] == '1') {
         autosuspend_ops = autosuspend_earlysuspend_init();
     }
