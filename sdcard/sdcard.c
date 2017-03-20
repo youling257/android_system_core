@@ -2064,7 +2064,7 @@ static bool should_use_sdcardfs(void) {
     }
 
     // Fall back to device opinion about state
-    if (property_get_bool(PROP_SDCARDFS_DEVICE, false)) {
+    if (property_get_bool(PROP_SDCARDFS_DEVICE, true)) {
         ALOGW("Device explicitly enabled sdcardfs");
         return supports_sdcardfs();
     } else {
