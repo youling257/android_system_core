@@ -51,7 +51,48 @@ ADB_MUTEX_DEFINE(local_transports_lock);
  * trying to connect twice to a given local transport.
  */
 static atransport*  local_transports[ ADB_LOCAL_TRANSPORT_MAX ];
-#endif /* ADB_HOST */
+#else /* !ADB_HOST */
+
+#define WAKE_LOCK_NAME      "adb-socket-connection"
+#define WAKE_LOCK_ACQUIRE   "/sys/power/wake_lock"
+#define WAKE_LOCK_RELEASE   "/sys/power/wake_unlock"
+
+static int sysfs_write(const char *node, const char *message)
+{
+    int fd;
+    ssize_t to_write;
+    int ret = 0;
+
+    fd = adb_open(node, O_RDWR);
+    if (!fd) {
+        D("open '%s' failed: %s", node, strerror(errno));
+        return -1;
+    }
+
+    to_write = strlen(message);
+    if (adb_write(fd, message, to_write) != to_write) {
+        D("write '%s' failed: %s", node, strerror(errno));
+        ret = -1;
+    }
+    adb_close(fd);
+    return ret;
+}
+
+static void get_wakelock(void)
+{
+    if (sysfs_write(WAKE_LOCK_ACQUIRE, WAKE_LOCK_NAME)) {
+        D("couldn't reserve wakelock for socket connection");
+    }
+}
+
+static void release_wakelock(void)
+{
+    if (sysfs_write(WAKE_LOCK_RELEASE, WAKE_LOCK_NAME)) {
+        D("couldn't release wakelock for socket connection");
+    }
+}
+
+#endif /* !ADB_HOST */
 
 static int remote_read(apacket *p, atransport *t)
 {
@@ -171,6 +212,9 @@ static void server_socket_thread(void* arg) {
         fd = adb_socket_accept(serverfd, addrp, &alen);
         if(fd >= 0) {
             D("server: new connection on fd %d", fd);
+#if !ADB_HOST
+            get_wakelock();
+#endif
             close_on_exec(fd);
             disable_tcp_nagle(fd);
             register_socket_transport(fd, "host", port, 1);
@@ -340,6 +384,9 @@ static void remote_kick(atransport *t)
 
 static void remote_close(atransport *t)
 {
+#if !ADB_HOST
+    release_wakelock();
+#endif
     int fd = t->sfd;
     if (fd != -1) {
         t->sfd = -1;
