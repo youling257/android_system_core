@@ -68,6 +68,7 @@ include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_CPPFLAGS := $(init_cflags)
+LOCAL_CPPFLAGS += -DTARGET_PRODUCT=\"$(TARGET_PRODUCT)\"
 LOCAL_SRC_FILES:= \
     bootchart.cpp \
     builtins.cpp \
@@ -142,6 +143,7 @@ LOCAL_STATIC_LIBRARIES := \
 
 # Create symlinks
 LOCAL_POST_INSTALL_CMD := $(hide) mkdir -p $(TARGET_ROOT_OUT)/sbin; \
+    ln -sf ../init $(TARGET_ROOT_OUT)/sbin/modprobe; \
     ln -sf ../init $(TARGET_ROOT_OUT)/sbin/ueventd; \
     ln -sf ../init $(TARGET_ROOT_OUT)/sbin/watchdogd
 

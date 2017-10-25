@@ -17,6 +17,8 @@
 #ifndef _LIBSUSPEND_AUTOSUSPEND_OPS_H_
 #define _LIBSUSPEND_AUTOSUSPEND_OPS_H_
 
+#define SYS_POWER_STATE "/sys/power/state"
+
 struct autosuspend_ops {
     int (*enable)(void);
     int (*disable)(void);
@@ -25,5 +27,7 @@ struct autosuspend_ops {
 struct autosuspend_ops *autosuspend_autosleep_init(void);
 struct autosuspend_ops *autosuspend_earlysuspend_init(void);
 struct autosuspend_ops *autosuspend_wakeup_count_init(void);
+
+const char *get_sleep_state();
 
 #endif

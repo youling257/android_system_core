@@ -177,10 +177,10 @@ static int wait_for_coldboot_done_action(const std::vector<std::string>& args) {
     timeout = 5;
 #endif
     NOTICE("Waiting for %s...\n", COLDBOOT_DONE);
-    // Any longer than 1s is an unreasonable length of time to delay booting.
+    // Any longer than 10s is an unreasonable length of time to delay booting.
     // If you're hitting this timeout, check that you didn't make your
     // sepolicy regular expressions too expensive (http://b/19899875).
-    if (wait_for_file(COLDBOOT_DONE, timeout)) {
+    if (wait_for_file(COLDBOOT_DONE, 10)) {
         ERROR("Timed out waiting for %s\n", COLDBOOT_DONE);
     }
     NOTICE("Waiting for %s took %.2fs.\n", COLDBOOT_DONE, t.duration());
@@ -300,8 +300,8 @@ static int console_init_action(const std::vector<std::string>& args)
 
     fd = open("/dev/tty0", O_WRONLY | O_CLOEXEC);
     if (fd >= 0) {
-        const char *msg;
-            msg = "\n"
+        const char *msg =
+        "\033[9;0]\n"
         "\n"
         "\n"
         "\n"
@@ -366,7 +366,7 @@ static void export_kernel_boot_props() {
         { "ro.boot.mode",       "ro.bootmode",   "unknown", },
         { "ro.boot.baseband",   "ro.baseband",   "unknown", },
         { "ro.boot.bootloader", "ro.bootloader", "unknown", },
-        { "ro.boot.hardware",   "ro.hardware",   "unknown", },
+        { "ro.boot.hardware",   "ro.hardware",   TARGET_PRODUCT, },
 #ifndef IGNORE_RO_BOOT_REVISION
         { "ro.boot.revision",   "ro.revision",   "0", },
 #endif
@@ -558,6 +558,10 @@ static int charging_mode_booting(void) {
 }
 
 int main(int argc, char** argv) {
+    if (strstr(argv[0], "modprobe")) {
+        return modprobe_main(argc, argv);
+    }
+
     if (!strcmp(basename(argv[0]), "ueventd")) {
         return ueventd_main(argc, argv);
     }
