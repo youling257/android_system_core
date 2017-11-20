@@ -590,6 +590,19 @@ static void selinux_initialize(bool in_kernel_domain) {
     }
 }
 
+static void install_signal_handlers()
+{
+    struct sigaction action;
+    memset(&action, 0, sizeof(action));
+    sigfillset(&action.sa_mask);
+    action.sa_flags = SA_RESTART;
+    action.sa_handler = [](int sig) {
+        NOTICE("Got ctrl-alt-del: %d", sig);
+        handle_control_message("start", "ctrl-alt-del");
+    };
+    sigaction(SIGINT, &action, nullptr);
+}
+
 int main(int argc, char** argv) {
     if (strstr(argv[0], "modprobe")) {
         return modprobe_main(argc, argv);
@@ -602,6 +615,8 @@ int main(int argc, char** argv) {
     if (!strcmp(basename(argv[0]), "watchdogd")) {
         return watchdogd_main(argc, argv);
     }
+
+    install_signal_handlers();
 
     // Clear the umask.
     umask(0);
