@@ -1960,12 +1960,12 @@ static void run(const char* source_path, const char* label, uid_t uid,
 }
 
 static int sdcardfs_setup(const char *source_path, const char *dest_path, uid_t fsuid,
-                        gid_t fsgid, bool multi_user, userid_t userid, gid_t gid, mode_t mask, bool derive_gid) {
+                        gid_t fsgid, bool multi_user, userid_t userid, gid_t gid, mode_t mask, bool derive_gid, bool default_normal) {
     char opts[256];
 
     snprintf(opts, sizeof(opts),
-            "fsuid=%d,fsgid=%d,%s%smask=%d,userid=%d,gid=%d", fsuid, fsgid,
-            multi_user ? "multiuser," : "", derive_gid ? "derive_gid," : "", mask, userid, gid);
+            "fsuid=%d,fsgid=%d,%s%s%smask=%d,userid=%d,gid=%d", fsuid, fsgid,
+            multi_user ? "multiuser," : "", derive_gid ? "derive_gid," : "", default_normal ? "default_normal," : "", mask, userid, gid);
 
     if (mount(source_path, dest_path, "sdcardfs",
                         MS_NOSUID | MS_NODEV | MS_NOEXEC | MS_NOATIME, opts) != 0) {
@@ -2002,7 +2002,7 @@ static int sdcardfs_setup_bind_remount(const char *source_path, const char *dest
 }
 
 static void run_sdcardfs(const char* source_path, const char* label, uid_t uid,
-        gid_t gid, userid_t userid, bool multi_user, bool full_write, bool derive_gid) {
+        gid_t gid, userid_t userid, bool multi_user, bool full_write, bool derive_gid, bool default_normal) {
     char dest_path_default[PATH_MAX];
     char dest_path_read[PATH_MAX];
     char dest_path_write[PATH_MAX];
@@ -2016,7 +2016,7 @@ static void run_sdcardfs(const char* source_path, const char* label, uid_t uid,
         /* Multi-user storage is fully isolated per user, so "other"
          * permissions are completely masked off. */
         if (sdcardfs_setup(source_path, dest_path_default, uid, gid, multi_user, userid,
-                                                      AID_SDCARD_RW, 0006, derive_gid)
+                                                      AID_SDCARD_RW, 0006, derive_gid, default_normal)
                 || sdcardfs_setup_bind_remount(dest_path_default, dest_path_read, AID_EVERYBODY, 0027)
                 || sdcardfs_setup_bind_remount(dest_path_default, dest_path_write,
                                                       AID_EVERYBODY, full_write ? 0007 : 0027)) {
@@ -2028,7 +2028,7 @@ static void run_sdcardfs(const char* source_path, const char* label, uid_t uid,
          * the Android directories are masked off to a single user
          * deep inside attr_from_stat(). */
         if (sdcardfs_setup(source_path, dest_path_default, uid, gid, multi_user, userid,
-                                                      AID_SDCARD_RW, 0006, derive_gid)
+                                                      AID_SDCARD_RW, 0006, derive_gid, default_normal)
                 || sdcardfs_setup_bind_remount(dest_path_default, dest_path_read,
                                                       AID_EVERYBODY, full_write ? 0027 : 0022)
                 || sdcardfs_setup_bind_remount(dest_path_default, dest_path_write,
@@ -2114,12 +2114,13 @@ int sdcard_main(int argc, char **argv) {
     bool multi_user = false;
     bool full_write = false;
     bool derive_gid = false;
+    bool default_normal = false;
     int i;
     struct rlimit rlim;
     int fs_version;
 
     int opt;
-    while ((opt = getopt(argc, argv, "u:g:U:mwG")) != -1) {
+    while ((opt = getopt(argc, argv, "u:g:U:mwGi")) != -1) {
         switch (opt) {
             case 'u':
                 uid = strtoul(optarg, NULL, 10);
@@ -2138,6 +2139,9 @@ int sdcard_main(int argc, char **argv) {
                 break;
             case 'G':
                 derive_gid = true;
+                break;
+            case 'i':
+                default_normal = true;
                 break;
             case '?':
             default:
@@ -2182,7 +2186,7 @@ int sdcard_main(int argc, char **argv) {
     }
 
     if (should_use_sdcardfs()) {
-        run_sdcardfs(source_path, label, uid, gid, userid, multi_user, full_write, derive_gid);
+        run_sdcardfs(source_path, label, uid, gid, userid, multi_user, full_write, derive_gid, default_normal);
     } else {
         run(source_path, label, uid, gid, userid, multi_user, full_write);
     }
