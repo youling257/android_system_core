@@ -1960,14 +1960,14 @@ static void run(const char* source_path, const char* label, uid_t uid,
 }
 
 static int sdcardfs_setup(const char *source_path, const char *dest_path, uid_t fsuid,
-                        gid_t fsgid, bool multi_user, userid_t userid, gid_t gid, mode_t mask, bool derive_gid, bool default_normal) {
+                        gid_t fsgid, bool multi_user, userid_t userid, gid_t gid, mode_t mask, bool derive_gid, bool default_normal, bool use_esdfs) {
     char opts[256];
 
     snprintf(opts, sizeof(opts),
             "fsuid=%d,fsgid=%d,%s%s%smask=%d,userid=%d,gid=%d", fsuid, fsgid,
             multi_user ? "multiuser," : "", derive_gid ? "derive_gid," : "", default_normal ? "default_normal," : "", mask, userid, gid);
 
-    if (mount(source_path, dest_path, "sdcardfs",
+    if (mount(source_path, dest_path, use_esdfs ? "esdfs" : "sdcardfs",
                         MS_NOSUID | MS_NODEV | MS_NOEXEC | MS_NOATIME, opts) != 0) {
         ERROR("failed to mount sdcardfs filesystem: %s\n", strerror(errno));
         return -1;
@@ -2001,8 +2001,17 @@ static int sdcardfs_setup_bind_remount(const char *source_path, const char *dest
     return 0;
 }
 
+static bool sdcardfs_setup_secondary(const char *default_path, const char *source_path, const char *dest_path, uid_t fsuid,
+                      gid_t fsgid, bool multi_user, userid_t userid, gid_t gid, mode_t mask, bool derive_gid, bool default_normal, bool use_esdfs) {
+    if (use_esdfs) {
+        return sdcardfs_setup(source_path, dest_path, fsuid, fsgid, multi_user, userid, gid, mask, derive_gid, default_normal, use_esdfs);
+    } else {
+        return sdcardfs_setup_bind_remount(default_path, dest_path, gid, mask);
+    }
+}
+
 static void run_sdcardfs(const char* source_path, const char* label, uid_t uid,
-        gid_t gid, userid_t userid, bool multi_user, bool full_write, bool derive_gid, bool default_normal) {
+        gid_t gid, userid_t userid, bool multi_user, bool full_write, bool derive_gid, bool default_normal, bool use_esdfs) {
     char dest_path_default[PATH_MAX];
     char dest_path_read[PATH_MAX];
     char dest_path_write[PATH_MAX];
@@ -2016,10 +2025,11 @@ static void run_sdcardfs(const char* source_path, const char* label, uid_t uid,
         /* Multi-user storage is fully isolated per user, so "other"
          * permissions are completely masked off. */
         if (sdcardfs_setup(source_path, dest_path_default, uid, gid, multi_user, userid,
-                                                      AID_SDCARD_RW, 0006, derive_gid, default_normal)
-                || sdcardfs_setup_bind_remount(dest_path_default, dest_path_read, AID_EVERYBODY, 0027)
-                || sdcardfs_setup_bind_remount(dest_path_default, dest_path_write,
-                                                      AID_EVERYBODY, full_write ? 0007 : 0027)) {
+                                                      AID_SDCARD_RW, 0006, derive_gid, default_normal, use_esdfs)
+                || sdcardfs_setup_secondary(dest_path_default, source_path, dest_path_read, uid, gid, multi_user, userid,
+                                                      AID_EVERYBODY, 0027, derive_gid, default_normal, use_esdfs)
+                || sdcardfs_setup_secondary(dest_path_default, source_path, dest_path_write, uid, gid, multi_user, userid,
+                                                      AID_EVERYBODY, full_write ? 0007 : 0027, derive_gid, default_normal, use_esdfs)) {
             ERROR("failed to fuse_setup\n");
             exit(1);
         }
@@ -2028,11 +2038,11 @@ static void run_sdcardfs(const char* source_path, const char* label, uid_t uid,
          * the Android directories are masked off to a single user
          * deep inside attr_from_stat(). */
         if (sdcardfs_setup(source_path, dest_path_default, uid, gid, multi_user, userid,
-                                                      AID_SDCARD_RW, 0006, derive_gid, default_normal)
-                || sdcardfs_setup_bind_remount(dest_path_default, dest_path_read,
-                                                      AID_EVERYBODY, full_write ? 0027 : 0022)
-                || sdcardfs_setup_bind_remount(dest_path_default, dest_path_write,
-                                                      AID_EVERYBODY, full_write ? 0007 : 0022)) {
+                                                      AID_SDCARD_RW, 0006, derive_gid, default_normal, use_esdfs)
+                || sdcardfs_setup_secondary(dest_path_default, source_path, dest_path_read, uid, gid, multi_user, userid,
+                                                      AID_EVERYBODY, full_write ? 0027 : 0022, derive_gid, default_normal, use_esdfs)
+                || sdcardfs_setup_secondary(dest_path_default, source_path, dest_path_write, uid, gid, multi_user, userid,
+                                                      AID_EVERYBODY, full_write ? 0007 : 0022, derive_gid, default_normal, use_esdfs)) {
             ERROR("failed to fuse_setup\n");
             exit(1);
         }
@@ -2082,6 +2092,28 @@ static bool supports_sdcardfs(void) {
     return false;
 }
 
+static bool supports_esdfs(void) {
+    FILE *fp;
+    char *buf = NULL;
+    size_t buflen = 0;
+
+    fp = fopen("/proc/filesystems", "r");
+    if (!fp) {
+        ERROR("Could not read /proc/filesystems, error: %s\n", strerror(errno));
+        return false;
+    }
+    while ((getline(&buf, &buflen, fp)) > 0) {
+        if (strstr(buf, "esdfs\n")) {
+            free(buf);
+            fclose(fp);
+            return true;
+        }
+    }
+    free(buf);
+    fclose(fp);
+    return false;
+}
+
 static bool should_use_sdcardfs(void) {
     char property[PROPERTY_VALUE_MAX];
 
@@ -2092,7 +2124,7 @@ static bool should_use_sdcardfs(void) {
         return supports_sdcardfs();
     } else if (!strcmp(property, "force_off")) {
         ALOGW("User explicitly disabled sdcardfs");
-        return false;
+        return supports_esdfs();
     }
 
     // Fall back to device opinion about state
@@ -2101,7 +2133,7 @@ static bool should_use_sdcardfs(void) {
         return supports_sdcardfs();
     } else {
         ALOGW("Device explicitly disabled sdcardfs");
-        return false;
+        return supports_esdfs();
     }
 }
 
@@ -2186,7 +2218,7 @@ int sdcard_main(int argc, char **argv) {
     }
 
     if (should_use_sdcardfs()) {
-        run_sdcardfs(source_path, label, uid, gid, userid, multi_user, full_write, derive_gid, default_normal);
+        run_sdcardfs(source_path, label, uid, gid, userid, multi_user, full_write, derive_gid, default_normal, should_use_sdcardfs());
     } else {
         run(source_path, label, uid, gid, userid, multi_user, full_write);
     }
