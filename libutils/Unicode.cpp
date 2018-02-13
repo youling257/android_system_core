@@ -19,6 +19,7 @@
 
 #include <limits.h>
 #include <stddef.h>
+#include <limits.h>
 
 #if defined(_WIN32)
 # undef  nhtol
