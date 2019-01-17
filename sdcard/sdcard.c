@@ -2015,10 +2015,12 @@ static void run_sdcardfs(const char* source_path, const char* label, uid_t uid,
     char dest_path_default[PATH_MAX];
     char dest_path_read[PATH_MAX];
     char dest_path_write[PATH_MAX];
+    char dest_path_full[PATH_MAX];
     char obb_path[PATH_MAX];
     snprintf(dest_path_default, PATH_MAX, "/mnt/runtime/default/%s", label);
     snprintf(dest_path_read, PATH_MAX, "/mnt/runtime/read/%s", label);
     snprintf(dest_path_write, PATH_MAX, "/mnt/runtime/write/%s", label);
+    snprintf(dest_path_full, PATH_MAX, "/mnt/runtime/full/%s", label);
 
     umask(0);
     if (multi_user) {
@@ -2029,7 +2031,9 @@ static void run_sdcardfs(const char* source_path, const char* label, uid_t uid,
                 || sdcardfs_setup_secondary(dest_path_default, source_path, dest_path_read, uid, gid, multi_user, userid,
                                                       AID_EVERYBODY, 0027, derive_gid, default_normal, use_esdfs)
                 || sdcardfs_setup_secondary(dest_path_default, source_path, dest_path_write, uid, gid, multi_user, userid,
-                                                      AID_EVERYBODY, full_write ? 0007 : 0027, derive_gid, default_normal, use_esdfs)) {
+                                                      AID_EVERYBODY, full_write ? 0007 : 0027, derive_gid, default_normal, use_esdfs)
+                || sdcardfs_setup_secondary(dest_path_default, source_path, dest_path_full, uid, gid, multi_user, userid,
+                                                      AID_EVERYBODY, 0007, derive_gid, default_normal, use_esdfs)) {
             ERROR("failed to fuse_setup\n");
             exit(1);
         }
@@ -2042,7 +2046,9 @@ static void run_sdcardfs(const char* source_path, const char* label, uid_t uid,
                 || sdcardfs_setup_secondary(dest_path_default, source_path, dest_path_read, uid, gid, multi_user, userid,
                                                       AID_EVERYBODY, full_write ? 0027 : 0022, derive_gid, default_normal, use_esdfs)
                 || sdcardfs_setup_secondary(dest_path_default, source_path, dest_path_write, uid, gid, multi_user, userid,
-                                                      AID_EVERYBODY, full_write ? 0007 : 0022, derive_gid, default_normal, use_esdfs)) {
+                                                      AID_EVERYBODY, full_write ? 0007 : 0022, derive_gid, default_normal, use_esdfs)
+                || sdcardfs_setup_secondary(dest_path_default, source_path, dest_path_full, uid, gid, multi_user, userid,
+                                                      AID_EVERYBODY, 0007, derive_gid, default_normal, use_esdfs)) {
             ERROR("failed to fuse_setup\n");
             exit(1);
         }
