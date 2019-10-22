@@ -101,7 +101,6 @@ static char16_t* allocFromUTF16(const char16_t* u16str, size_t u16len) {
     return getEmptyString();
 }
 
-
 // ---------------------------------------------------------------------------
 
 String16::String16()
