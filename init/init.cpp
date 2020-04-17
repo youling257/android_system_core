@@ -298,6 +298,10 @@ static int console_init_action(const std::vector<std::string>& args)
         return 0;
     }
 
+    if (property_get("ro.boot.skip_write_on_console") == "1") {
+        return 0;
+    }
+
     fd = open("/dev/tty0", O_WRONLY | O_CLOEXEC);
     if (fd >= 0) {
         const char *msg =
