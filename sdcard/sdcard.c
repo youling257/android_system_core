@@ -2131,7 +2131,7 @@ static bool should_use_sdcardfs(void) {
         return supports_sdcardfs();
     } else if (!strcmp(property, "force_off")) {
         ALOGW("User explicitly disabled sdcardfs");
-        return supports_esdfs();
+        return !supports_esdfs();
     }
 
     // Fall back to device opinion about state
@@ -2140,7 +2140,7 @@ static bool should_use_sdcardfs(void) {
         return supports_sdcardfs();
     } else {
         ALOGW("Device explicitly disabled sdcardfs");
-        return supports_esdfs();
+        return !supports_esdfs();
     }
 }
 
@@ -2228,10 +2228,7 @@ int sdcard_main(int argc, char **argv) {
         sleep(1);
     }
 
-    if (should_use_sdcardfs()) {
-        run_sdcardfs(source_path, label, uid, gid, userid, multi_user, full_write, derive_gid, default_normal, unshared_obb, should_use_sdcardfs());
-    } else {
-        run(source_path, label, uid, gid, userid, multi_user, full_write);
-    }
+    run_sdcardfs(source_path, label, uid, gid, userid, multi_user, full_write, derive_gid, default_normal, unshared_obb, !should_use_sdcardfs());
+
     return 1;
 }

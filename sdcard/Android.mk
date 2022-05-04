@@ -7,7 +7,7 @@ LOCAL_ADDITIONAL_DEPENDENCIES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
 endif
 LOCAL_SRC_FILES := sdcard.c
 LOCAL_MODULE := libsdcard
-LOCAL_CFLAGS := -Wall -Wno-unused-parameter -Werror
+LOCAL_CFLAGS := -Wall -Wno-unused-parameter -Werror -Wno-unused-function
 LOCAL_STATIC_LIBRARIES := libpackagelistparser
 LOCAL_MODULE_TAGS := optional
 include $(BUILD_STATIC_LIBRARY)
