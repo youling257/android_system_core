@@ -194,7 +194,7 @@ int FirstStageMain(int argc, char** argv) {
     CHECKCALL(mkdir("/dev/socket", 0755));
     CHECKCALL(mount("devpts", "/dev/pts", "devpts", 0, NULL));
 #define MAKE_STR(x) __STRING(x)
-    CHECKCALL(mount("proc", "/proc", "proc", 0, "hidepid=2,gid=" MAKE_STR(AID_READPROC)));
+    CHECKCALL(mount("proc", "/proc", "proc", 0, NULL));
 #undef MAKE_STR
     // Don't expose the raw commandline to unprivileged processes.
     CHECKCALL(chmod("/proc/cmdline", 0440));
