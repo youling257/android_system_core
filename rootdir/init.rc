@@ -452,7 +452,7 @@ on post-fs
 
     # Once everything is setup, no need to modify /.
     # The bind+remount combination allows this to work in containers.
-    mount rootfs rootfs / remount bind ro nodev
+    mount rootfs rootfs / remount bind rw nodev
 
     # Make sure /sys/kernel/debug (if present) is labeled properly
     # Note that tracefs may be mounted under debug, so we need to cross filesystems
