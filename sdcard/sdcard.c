@@ -95,6 +95,7 @@
 
 #define PROP_SDCARDFS_DEVICE "ro.sys.sdcardfs"
 #define PROP_SDCARDFS_USER "persist.sys.sdcardfs"
+#define PROP_FUSE_USER "persist.sys.fuse"
 
 #define FUSE_UNKNOWN_INO 0xffffffff
 
@@ -2228,7 +2229,12 @@ int sdcard_main(int argc, char **argv) {
         sleep(1);
     }
 
-    run_sdcardfs(source_path, label, uid, gid, userid, multi_user, full_write, derive_gid, default_normal, unshared_obb, !should_use_sdcardfs());
-
+    char property[PROPERTY_VALUE_MAX];
+    property_get(PROP_FUSE_USER, property, "");
+    if (!strcmp(property, "force_off")) {
+        run_sdcardfs(source_path, label, uid, gid, userid, multi_user, full_write, derive_gid, default_normal, unshared_obb, !should_use_sdcardfs());
+    } else {
+        run(source_path, label, uid, gid, userid, multi_user, full_write);
+    }
     return 1;
 }
