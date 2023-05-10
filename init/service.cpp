@@ -391,7 +391,7 @@ bool Service::Start() {
 
     pid_t pid = fork();
     if (pid == 0) {
-        umask(077);
+        umask(000);
 
         for (const auto& ei : envvars_) {
             add_environment(ei.name.c_str(), ei.value.c_str());
