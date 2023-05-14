@@ -31,7 +31,7 @@ on early-init
     restorecon /postinstall
 
     mount debugfs /sys/kernel/debug /sys/kernel/debug mode=755
-
+    setprop ro.boot.skip_write_on_console 1
     # for /lib/firmware
     symlink system/lib /lib
 
@@ -667,19 +667,10 @@ service healthd /sbin/healthd
     seclabel u:r:healthd:s0
     group root system wakelock
 
-service console /system/bin/sh
-    class core
-    console
-    disabled
-#   user shell
-    group shell log readproc
-    seclabel u:r:shell:s0
-
 on property:ro.debuggable=1
     # Give writes to anyone for the trace folder on debug builds.
     # The folder is used to store method traces.
     chmod 0773 /data/misc/trace
-    start console
 
 service flash_recovery /system/bin/install-recovery.sh
     class main
